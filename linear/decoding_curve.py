@@ -9,7 +9,7 @@ subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "derivatives", "offline", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "rcca", "240", subject, f"{subject}_gdf.npz")
     tmp = np.load(fn)
 
     X = tmp["X"]
@@ -26,10 +26,10 @@ for subject in subjects:
     E, events = pyntbci.utilities.event_matrix(V, event="duration", onset_event=True)
 
     # Create structure matrix
-    encoding_length = int(0.3 * fs)  # 300 ms responses
+    encoding_length = int(0.5 * fs)  # 500 ms responses
     M = pyntbci.utilities.encoding_matrix(E, encoding_length)   
 
-    trialtime = 31.5  # limit trials to a certain duration in seconds
+    trialtime = 4.2  # limit trials to a certain duration in seconds
     intertrialtime = 1.0  # ITI in seconds for computing ITR
     n_samples = int(trialtime * fs)
 
@@ -38,7 +38,7 @@ for subject in subjects:
     folds = np.repeat(np.arange(n_folds), int(n_trials / n_folds))
 
     # Set decoding curve axis
-    segmenttime = 0.5  # step size of the decoding curve in seconds
+    segmenttime = 0.1  # step size of the decoding curve in seconds
     segments = np.arange(segmenttime, trialtime, segmenttime)
     n_segments = segments.size
 
@@ -50,8 +50,13 @@ for subject in subjects:
         X_trn, y_trn = X[folds != i_fold, :, :n_samples], y[folds != i_fold]
         X_tst, y_tst = X[folds == i_fold, :, :n_samples], y[folds == i_fold]
 
+        excess = 20  # one full block = 20 trials (serve the purpose of validation)
+
+        X_trn = X_trn[:-excess]
+        y_trn = y_trn[:-excess]
+
         # Setup classifier
-        rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.3, onset_event=True)
+        rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.5, onset_event=True)
 
         # Train classifier
         rcca.fit(X_trn, y_trn)
@@ -69,8 +74,8 @@ for subject in subjects:
     itr = pyntbci.utilities.itr(n_classes, accuracy, time + intertrialtime)
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "rcca_full", subject)):
-        os.makedirs(os.path.join(path, "decoding_curve", "offline", "rcca_full", subject))
+    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "rcca_short", subject)):
+        os.makedirs(os.path.join(path, "decoding_curve", "offline", "rcca_short", subject))
         
     # Save data
-    np.savez(os.path.join(path, "decoding_curve", "offline", "rcca_full", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy, segments=segments)
+    np.savez(os.path.join(path, "decoding_curve", "offline", "rcca_short", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy, segments=segments)

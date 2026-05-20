@@ -9,7 +9,7 @@ from skorch.helper import predefined_split
 
 from sklearn.pipeline import make_pipeline
 
-def EEGNet_pipeline(X_valid=None, y_valid=None, n_channels=8, n_times=36, F1=8, D=2, seed=42):
+def EEGNet_pipeline(n_times, X_valid=None, y_valid=None, n_channels=8, F1=8, D=2, seed=42, device="cpu"):
 
     setup_seed(seed)
     
@@ -21,11 +21,11 @@ def EEGNet_pipeline(X_valid=None, y_valid=None, n_channels=8, n_times=36, F1=8, 
     model = EEGNet(
         n_chans = n_channels,
         n_outputs = 2,
-        n_times = n_times,
+        n_times = n_times, # epoch length in samples
         F1 = F1, 
         D=D,
         F2 = F1 * D,
-        kernel_length=18,
+        kernel_length=n_times // 2,
         drop_prob = 0.25
     )
 
@@ -42,7 +42,7 @@ def EEGNet_pipeline(X_valid=None, y_valid=None, n_channels=8, n_times=36, F1=8, 
         batch_size=BATCH_SIZE,
         max_epochs=EPOCH, 
         train_split=train_split, # stratified=True
-        # device=device,
+        device=device,
         callbacks=[
             EarlyStopping(monitor="valid_loss", patience=PATIENCE),
             EpochScoring(

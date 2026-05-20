@@ -9,7 +9,7 @@ subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "derivatives", "offline", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "rcca", "120", subject, f"{subject}_gdf.npz")
     tmp = np.load(fn)
 
     X = tmp["X"]
@@ -44,6 +44,11 @@ for subject in subjects:
         X_trn, y_trn = X[folds != i_fold, :, :n_samples], y[folds != i_fold]
         X_tst, y_tst = X[folds == i_fold, :, :n_samples], y[folds == i_fold]
 
+        excess = 20  # one full block = 20 trials (serve the purpose of validation)
+
+        X_trn = X_trn[:-excess]
+        y_trn = y_trn[:-excess]
+
         # Train template-matching classifier
         rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.3, onset_event=True)
         rcca.fit(X_trn, y_trn)
@@ -58,11 +63,11 @@ for subject in subjects:
     itr = pyntbci.utilities.itr(n_classes, accuracy, trialtime + intertrialtime)
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "train", "offline", "rcca", subject)):
-        os.makedirs(os.path.join(path, "train", "offline", "rcca", subject))
-        
+    if not os.path.exists(os.path.join(path, "train", "offline", "noartifacts", "120_300", subject)):
+        os.makedirs(os.path.join(path, "train", "offline", "noartifacts", "120_300", subject))
+
     # Save data
-    np.savez(os.path.join(path, "train", "offline", "rcca", subject, f"{subject}_gdf.npz"), accuracy=accuracy)
+    np.savez(os.path.join(path, "train", "offline", "noartifacts", "120_300", subject, f"{subject}_gdf.npz"), accuracy=accuracy)
 
     # Print accuracy (average and standard deviation over folds)
     print(f"Accuracy: avg={accuracy.mean():.2f} with std={accuracy.std():.2f}")

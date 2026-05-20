@@ -1,14 +1,20 @@
-from moabb.datasets import Thielen2021
-from moabb.paradigms import CVEP
+# from moabb.datasets import Thielen2021
+# from moabb.paradigms import CVEP
 import pyntbci
 import scipy.io as sio
 import numpy as np
 import os
 
+import sys
+sys.path.insert(0, "/Users/lyubomirvidrov/Desktop/Thesis/MOABB")
+
+from moabb.paradigms.cvep import CVEP
+from moabb.datasets import Thielen2021
+
 home = os.path.expanduser("~")  # the path to the home folder
 path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
-fs=120
+fs=240
 FR=60
 
 dataset=Thielen2021()
@@ -25,20 +31,17 @@ paradigm = CVEP(
     fmin=1.0,
     fmax=45.0,
     tmin=0.0,
-    tmax=0.3,
-    resample=120,
+    tmax=0.5,
+    resample=240,
     events={"0.0": 0, "1.0": 1},
     n_classes=2,
 )
 
 for i in range(10):
-    # tmp = np.load("/Users/lyubomirvidrov/data/thielen2021/derivatives/offline/" + subjects[i] + "/" + subjects[i] + "_gdf.npz")
-    # V = tmp["V"][:, ::int(tmp["fs"] / 120)] # fs
-    # y_trial = tmp["y"]
-
     X, y, metadata = paradigm.get_data(dataset=dataset, subjects=[i+1])
 
     y = np.array([0 if label == '0.0' else 1 for label in y], dtype=np.int64)
+    X = X[:, :, :int(0.5*fs)]
     X = X * 1e6
 
     y_trial = y.reshape(100, 1890)
