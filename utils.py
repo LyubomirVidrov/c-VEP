@@ -1,5 +1,255 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+
+
+def _get_subject_learning_curve(path, version, model, subject):
+    fn = os.path.join(
+        path, "learning_curve", "offline",
+        version, model, subject, f"{subject}_gdf.npz"
+    )
+
+    tmp = np.load(fn)
+
+    return {
+        "accuracy": tmp["accuracy"],   # shape: folds x train_trials
+        "train_trials": tmp["train_trials"]
+    }
+
+
+def _get_subject_decoding_curve(path, version, model, subject):
+    fn = os.path.join(
+        path, "decoding_curve", "offline",
+        version, model, subject, f"{subject}_gdf.npz"
+    )
+
+    tmp = np.load(fn)
+
+    return {
+        "segments": tmp["segments"],
+        "accuracy": tmp["acc_trial"],   # shape: folds x segments
+        "itr": tmp["itr"]              # shape: folds x segments
+    }
+
+
+def _get_subject_accuracy(path, version, model, subject):
+    fn = os.path.join(
+        path, "train", "offline", "noartifacts",
+        version, model, subject, f"{subject}_gdf.npz"
+    )
+
+    tmp = np.load(fn)
+
+    if model == "rcca" or model == "rcca_short":
+        accuracy = np.mean(tmp["accuracy"])  # mean over 5 folds
+
+        return {"accuracy": accuracy,}
+    else:
+        acc_epoch = np.mean(tmp["acc_epoch"])  # mean over 5 folds
+        acc_trial = np.mean(tmp["acc_trial"])  # mean over 5 folds
+
+        return {"acc_epoch": acc_epoch, "acc_trial": acc_trial,}
+    
+
+def _collect_subject_learning_curves(path, subjects, versionds, models):
+    results = {}
+
+    for version in versionds:
+        results[version] = {}
+
+        for model in models:
+            results[version][model] = {}
+
+            for subject in subjects:
+                results[version][model][subject] = _get_subject_learning_curve(
+                    path, version, model, subject
+                )
+
+    return results
+    
+
+def _collect_subject_decoding_curves(path, subjects, versions, models):
+    results = {}
+
+    for version in versions:
+        results[version] = {}
+
+        for model in models:
+            results[version][model] = {}
+
+            for subject in subjects:
+                results[version][model][subject] = _get_subject_decoding_curve(
+                    path, version, model, subject
+                )
+
+    return results
+
+
+def _collect_subject_accuracies(path, subjects, versions, models):
+    results = {}
+
+    for version in versions:
+        results[version] = {}
+
+        for model in models:
+            results[version][model] = {}
+
+            for subject in subjects:
+                results[version][model][subject] = _get_subject_accuracy(
+                    path, version, model, subject
+                )
+
+    return results
+
+
+def collect_multi_subject_learning_curves(path, subjects):
+    versions = ["short"]
+    models = ["eegnet_4_2", "eegnet_8_2", "rcca"]
+
+    subj_results = _collect_subject_learning_curves(path, subjects, versions, models)
+    multi_subj_results = {}
+
+    for version, version_data in subj_results.items():
+        multi_subj_results[version] = {}
+
+        for model, subject_data in version_data.items():
+            multi_subj_results[version][model] = {}
+
+            first_subject = list(subject_data.keys())[0]
+            train_trials = subject_data[first_subject]["train_trials"]
+
+            for metric in ["accuracy"]:
+
+                vals = np.array([
+                    subj_data[metric].mean(axis=0)   # mean over 5 folds first
+                    for subj_data in subject_data.values()
+                ])
+
+                mean_val = vals.mean(axis=0)        # mean across subjects
+
+                lower_dev = np.where(vals <= mean_val, mean_val - vals, np.nan)
+                upper_dev = np.where(vals >= mean_val, vals - mean_val, np.nan)
+
+                # L1 deviation from mean
+                std_lower = np.nanmean(lower_dev, axis=0)
+                std_upper = np.nanmean(upper_dev, axis=0) 
+
+                # # L2 deviation from mean
+                # std_lower = np.sqrt(np.nanmean(lower_dev**2, axis=0))
+                # std_upper = np.sqrt(np.nanmean(upper_dev**2, axis=0))
+
+                multi_subj_results[version][model][metric] = {
+                    "mean": mean_val,
+                    "std": vals.std(axis=0),
+                    "std_lower": std_lower,
+                    "std_upper": std_upper,
+                    "values": vals
+                }
+
+            multi_subj_results[version][model]["train_trials"] = train_trials
+
+    return multi_subj_results
+
+
+def collect_multi_subject_decoding_curves(path, subjects):
+    versions = ["short", "full"]
+    models = ["eegnet_4_2", "eegnet_8_2", "rcca"]
+
+    subj_results = _collect_subject_decoding_curves(path, subjects, versions, models)
+    multi_subj_results = {}
+
+    for version, version_data in subj_results.items():
+        multi_subj_results[version] = {}
+
+        for model, subject_data in version_data.items():
+            multi_subj_results[version][model] = {}
+
+            first_subject = list(subject_data.keys())[0]
+            segments = subject_data[first_subject]["segments"]
+
+            for metric in ["accuracy", "itr"]:
+
+                vals = np.array([
+                    subj_data[metric].mean(axis=0)   # mean over 5 folds first
+                    for subj_data in subject_data.values()
+                ])
+
+                mean_val = vals.mean(axis=0)        # mean across subjects
+
+                lower_dev = np.where(vals <= mean_val, mean_val - vals, np.nan)
+                upper_dev = np.where(vals >= mean_val, vals - mean_val, np.nan)
+
+                # L1 deviation from mean
+                std_lower = np.nanmean(lower_dev, axis=0)
+                std_upper = np.nanmean(upper_dev, axis=0) 
+
+                # # L2 deviation from mean
+                # std_lower = np.sqrt(np.nanmean(lower_dev**2, axis=0))
+                # std_upper = np.sqrt(np.nanmean(upper_dev**2, axis=0))
+
+                multi_subj_results[version][model][metric] = {
+                    "mean": mean_val,
+                    "std": vals.std(axis=0),
+                    "std_lower": std_lower,
+                    "std_upper": std_upper,
+                    "values": vals
+                }
+
+            multi_subj_results[version][model]["segments"] = segments
+
+    return multi_subj_results
+
+
+def collect_multi_subject_data(path, subjects):
+    versions = ["120_300", "120_500", "240_300", "240_500"]
+    models = ["eegnet_full_8_2", "eegnet_short_8_2", "rcca", "rcca_short"]
+
+    subj_results = _collect_subject_accuracies(path, subjects, versions, models)
+    multi_subj_results = {}
+
+    for version, version_data in subj_results.items():
+        multi_subj_results[version] = {}
+
+        for model, subject_data in version_data.items():
+            multi_subj_results[version][model] = {}
+
+            # metrics = list(next(iter(subject_data.values())).keys())
+            first_subject = list(subject_data.keys())[0]
+            metrics = subject_data[first_subject].keys()
+
+            for metric in metrics:
+                vals = np.array([
+                    acc_data[metric]
+                    for acc_data in subject_data.values()
+                ])
+
+                mean_val = vals.mean()
+
+                # lower_vals = np.where(vals <= mean_val, vals, np.nan)
+                # upper_vals = np.where(vals >= mean_val, vals, np.nan)
+
+                lower_dev = np.where(vals <= mean_val, mean_val - vals, np.nan)
+                upper_dev = np.where(vals >= mean_val, vals - mean_val, np.nan)
+
+                # L1 deviation from mean
+                std_lower = np.nanmean(lower_dev, axis=0)
+                std_upper = np.nanmean(upper_dev, axis=0) 
+
+                # # L2 deviation from mean
+                # std_lower = np.sqrt(np.nanmean(lower_dev**2, axis=0))
+                # std_upper = np.sqrt(np.nanmean(upper_dev**2, axis=0))
+
+                multi_subj_results[version][model][metric] = {
+                    "mean": mean_val,
+                    # "std_lower": np.std(lower_vals),
+                    # "std_upper": np.std(upper_vals),
+                    "std_lower": std_lower,
+                    "std_upper": std_upper,
+                    "values": vals
+                }
+
+    return multi_subj_results
+
 
 def display_accuracy(accuracy_epoch, accuracy_trial, n_folds=5):
     # Plot epoch accuracy (over folds)
@@ -74,7 +324,8 @@ def plot_grouped_accuracy(summary, is_full=True, metric="acc_trial"):
     else:
         models = ["eegnet_short_8_2", "rcca_short"]
 
-    colors = ["#dbe9f6", "#9ecae1", "#4292c6", "#084594"]
+    colors_eegnet = ["#dbe9f6", "#9ecae1", "#4292c6", "#084594"]
+    colors_rcca = ["#245501", "#538d22", "#73a942", "#aad576"]
 
     x = np.arange(len(models))
     width = 0.2
@@ -86,13 +337,16 @@ def plot_grouped_accuracy(summary, is_full=True, metric="acc_trial"):
         means = []
         stds_lower = []
         stds_upper = []
+        colors = []
 
         for model in models:
 
             if model == "rcca" or model == "rcca_short":
                 metric_name = "accuracy"
+                colors.append(colors_rcca[i])
             else:
                 metric_name = metric
+                colors.append(colors_eegnet[i])
 
             means.append(summary[version][model][metric_name]["mean"])
             stds_lower.append(summary[version][model][metric_name]["std_lower"])
@@ -109,7 +363,7 @@ def plot_grouped_accuracy(summary, is_full=True, metric="acc_trial"):
             yerr=[lower_errors, upper_errors],
             capsize=5,
             label=version,
-            color=colors[i]
+            # color=colors
         )
 
     ax.set_xticks(x)
@@ -128,7 +382,7 @@ def plot_grouped_accuracy(summary, is_full=True, metric="acc_trial"):
 
 import matplotlib.pyplot as plt
 
-def display_decoding_curve_from_dict(curve_results, version, models):
+def display_multi_subject_decoding_curve(curve_results, version, models):
     fig, ax = plt.subplots(2, 1, figsize=(15, 5), sharex=True)
 
     for model in models:
@@ -179,7 +433,7 @@ def display_decoding_curve_from_dict(curve_results, version, models):
     fig.tight_layout()
     plt.show()
 
-def collect_multi_subject_learning_curves(curve_results, version, models):
+def display_multi_subject_learning_curve(curve_results, version, models):
     fig, ax = plt.subplots(figsize=(15, 3))
 
     trialtime = 4.2 if version == "short" else 31.5
