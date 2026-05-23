@@ -41,20 +41,22 @@ subjects = [f"sub-{1+i:02d}" for i in range(10)]
 
 results = utils.collect_multi_subject_data(path, subjects)
 
-utils.plot_grouped_accuracy(results, is_full=False)
+utils.plot_grouped_accuracy(results, is_full=True, uncertainty="std")
 
 curve_results = utils.collect_multi_subject_decoding_curves(path, subjects)
 
 utils.display_multi_subject_decoding_curve(
     curve_results,
     version="full",
-    models=["eegnet_8_2", "eegnet_4_2", "rcca"]
+    models=["eegnet_8_2", "eegnet_4_2", "rcca"],
+    uncertainty="std"
 )
   
 learning_curve_results = utils.collect_multi_subject_learning_curves(path, subjects)
 
 utils.display_multi_subject_learning_curve(
     learning_curve_results,
-    version="short",
-    models=["eegnet_8_2", "eegnet_4_2", "rcca"]
+    version="full",
+    models=["eegnet_8_2", "eegnet_4_2", "rcca"],
+    uncertainty="std"
 )

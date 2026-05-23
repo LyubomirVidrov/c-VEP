@@ -98,7 +98,7 @@ for subject in subjects:
                                     n_times=encoding_length,
                                     X_valid=X_val.reshape((-1, n_channels, encoding_length)), 
                                     y_valid=y_val.flatten(),
-                                    F1=8,
+                                    F1=4,
                                     device=device
                                 )
 
@@ -117,8 +117,8 @@ for subject in subjects:
         print(f"Now running: Fold {i_fold}...")
 
         # Create output folder
-    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full", "eegnet_8_2", subject)):
-        os.makedirs(os.path.join(path, "learning_curve", "offline", "full", "eegnet_8_2", subject))
+    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full", "eegnet_4_2", subject)):
+        os.makedirs(os.path.join(path, "learning_curve", "offline", "full", "eegnet_4_2", subject))
         
     # Save data
-    np.savez(os.path.join(path, "learning_curve", "offline", "full", "eegnet_8_2", subject, f"{subject}_gdf.npz"), accuracy=accuracy_trial, train_trials=train_trials)
+    np.savez(os.path.join(path, "learning_curve", "offline", "full", "eegnet_4_2", subject, f"{subject}_gdf.npz"), accuracy=accuracy_trial, train_trials=train_trials)
