@@ -26,7 +26,7 @@ trialtime = 31.5  # limit trials to a certain duration in seconds
 encoding_length = int(epochtime * fs)
 encoding_stride = int(1 / fr * fs)
 
-n_epochs = int(round((fs*trialtime - encoding_length)/2))
+n_epochs = int(round((fs*trialtime - encoding_length)/2 + 1))
 
 # Setup cross-validation
 n_folds = 5
@@ -34,7 +34,7 @@ folds = np.repeat(np.arange(n_folds), n_trials / n_folds)
 
 # train_trials = np.arange(1, 1 + np.sum(folds != 0))
 train_trials = np.concatenate([
-    np.arange(1, 11, 1),
+    np.arange(1, 11, 1), 
     np.arange(12, 20, 2),
     np.arange(20, 81, 5)
 ])
@@ -81,15 +81,6 @@ for subject in subjects:
         X_trn = X_trn[:-valid_size]
         y_trn = y_trn[:-valid_size]
 
-        # # Initialize pipeline
-        # pipe = EEGNet_pipeline(
-        #                         n_times=encoding_length,
-        #                         X_valid=X_val.reshape((-1, n_channels, encoding_length)), 
-        #                         y_valid=y_val.flatten(),
-        #                         F1=8,
-        #                         device=device
-        #                     )
-
         # Loop train trials
         for i_trial in range(n_train_trials):
 
@@ -117,8 +108,8 @@ for subject in subjects:
         print(f"Now running: Fold {i_fold}...")
 
         # Create output folder
-    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full", "eegnet_4_2", subject)):
-        os.makedirs(os.path.join(path, "learning_curve", "offline", "full", "eegnet_4_2", subject))
+    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full1", "eegnet_4_2", subject)):
+        os.makedirs(os.path.join(path, "learning_curve", "offline", "full1", "eegnet_4_2", subject))
         
     # Save data
-    np.savez(os.path.join(path, "learning_curve", "offline", "full", "eegnet_4_2", subject, f"{subject}_gdf.npz"), accuracy=accuracy_trial, train_trials=train_trials)
+    np.savez(os.path.join(path, "learning_curve", "offline", "full1", "eegnet_4_2", subject, f"{subject}_gdf.npz"), accuracy=accuracy_trial, train_trials=train_trials)

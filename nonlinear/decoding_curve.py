@@ -27,16 +27,16 @@ intertrialtime = 1.0  # ITI in seconds for computing ITR
 encoding_length = int(epochtime * fs)
 encoding_stride = int(1 / fr * fs)
 
-n_epochs = int(round((fs*trialtime - encoding_length)/2))
+n_epochs = int(round((fs*trialtime - encoding_length)/2 + 1))
 
 # Setup cross-validation
 n_folds = 5
 folds = np.repeat(np.arange(n_folds), n_trials / n_folds)
 
-segmenttime = 0.5  # step size of the decoding curve in seconds
-segments = np.arange(segmenttime, trialtime, segmenttime)
+segmenttime = 0.7  # step size of the decoding curve in seconds
+segments = np.concatenate([np.arange(0.1, 4.2, 0.1), np.arange(4.2, trialtime, segmenttime)])
 index = np.where(np.isclose(segments, encoding_length/fs))[0][0] # time constraint 
-segments = segments[index+1:]
+segments = segments[index:]
 # segments = segments[segments > 36/fs]
 n_segments = segments.size
 
@@ -89,7 +89,7 @@ for subject in subjects:
                                 n_times=encoding_length,
                                 X_valid=X_val.reshape((-1, n_channels, encoding_length)), 
                                 y_valid=y_val.flatten(),
-                                F1=8,
+                                F1=4,
                                 device=device
                             )
 
@@ -99,25 +99,25 @@ for subject in subjects:
         #Loop segments
         for i_segment in range(n_segments):
             # Apply pipeline (on epoch level)
-            yh_tst = pipe.predict(X_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2)), :, :].reshape((-1, n_channels, encoding_length)))
+            yh_tst = pipe.predict(X_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1)), :, :].reshape((-1, n_channels, encoding_length)))
 
             # Apply pipeline (on trial level)
-            ph_tst = pipe.predict_proba(X_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2)), :, :].reshape((-1, n_channels, encoding_length)))[:, 1].reshape(y_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2))].shape)
+            ph_tst = pipe.predict_proba(X_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1)), :, :].reshape((-1, n_channels, encoding_length)))[:, 1].reshape(y_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1))].shape)
             
-            rho = pyntbci.utilities.correlation(ph_tst, _V[:, : int(round((fs*segments[i_segment] - encoding_length)/2))])
+            rho = pyntbci.utilities.correlation(ph_tst, _V[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1))])
             yh_tst = np.argmax(rho, axis=1)
             accuracy_trial[i_fold, i_segment] = np.mean(yh_tst == y_tst_trial)
-    
+
     # Compute ITR
     time = np.tile(segments[np.newaxis, :], (n_folds, 1))
     itr = pyntbci.utilities.itr(V.shape[0], accuracy_trial, time + intertrialtime) 
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "eegnet_full_8_2", subject)):
-        os.makedirs(os.path.join(path, "decoding_curve", "offline", "eegnet_full_8_2", subject))
+    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "eegnet_full_4_2", subject)):
+        os.makedirs(os.path.join(path, "decoding_curve", "offline", "eegnet_full_4_2", subject))
         
     # Save data
-    np.savez(os.path.join(path, "decoding_curve", "offline", "eegnet_full_8_2", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy_trial, segments=segments)
+    np.savez(os.path.join(path, "decoding_curve", "offline", "eegnet_full_4_2", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy_trial, segments=segments)
 
     print("EEGNet:")
     print(subject, ': Decoding curve finished')

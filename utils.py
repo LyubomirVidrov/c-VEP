@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import wilcoxon
 import os
 
 
@@ -104,7 +105,7 @@ def _collect_subject_accuracies(path, subjects, versions, models):
 
 def collect_multi_subject_learning_curves(path, subjects):
     versions = ["short", "full"]
-    models = ["eegnet_4_2", "eegnet_8_2", "rcca"]
+    models = ["rcca", "eegnet-8-2", "eegnet-4-2"]
 
     subj_results = _collect_subject_learning_curves(path, subjects, versions, models)
     multi_subj_results = {}
@@ -158,8 +159,8 @@ def collect_multi_subject_learning_curves(path, subjects):
 
 
 def collect_multi_subject_decoding_curves(path, subjects):
-    versions = ["short", "full"]
-    models = ["eegnet_4_2", "eegnet_8_2", "rcca"]
+    versions = ["full"]
+    models = ["rcca", "eegnet-8-2", "eegnet-4-2"]
 
     subj_results = _collect_subject_decoding_curves(path, subjects, versions, models)
     multi_subj_results = {}
@@ -214,7 +215,7 @@ def collect_multi_subject_decoding_curves(path, subjects):
 
 def collect_multi_subject_data(path, subjects):
     versions = ["120_300", "120_500", "240_300", "240_500"]
-    models = ["eegnet_full_8_2", "eegnet_short_8_2", "rcca", "rcca_short"]
+    models = ["rcca", "rcca_short", "eegnet_full_8_2", "eegnet_short_8_2"]
 
     subj_results = _collect_subject_accuracies(path, subjects, versions, models)
     multi_subj_results = {}
@@ -334,37 +335,175 @@ def plot_grouped_accuracy(summary, is_full=True, metric="acc_trial", uncertainty
     plt.show()
 
 
-def display_multi_subject_decoding_curve(curve_results, version, models, uncertainty="std"):
-    fig, ax = plt.subplots(2, 1, figsize=(15, 5), sharex=True)
+# def display_multi_subject_decoding_curve(curve_results, version, models, uncertainty="std"):
+#     fig, ax = plt.subplots(2, 1, figsize=(15, 5), sharex=True)
+
+#     for model in models:
+#         # segments = curve_results[version][model]["segments"]
+#         if version == "full":
+#             segments = curve_results[version][model]["segments"]
+#             acc_mean = curve_results[version][model]["accuracy"]["mean"]
+
+#             itr_mean = curve_results[version][model]["itr"]["mean"]
+
+#             if uncertainty == "std":
+#                 acc_lower = curve_results[version][model]["accuracy"]["std_lower"]
+#                 acc_upper = curve_results[version][model]["accuracy"]["std_upper"]
+
+#                 itr_lower = curve_results[version][model]["itr"]["std_lower"]
+#                 itr_upper = curve_results[version][model]["itr"]["std_upper"]
+#             elif uncertainty == "se":
+#                 acc_lower = curve_results[version][model]["accuracy"]["se_lower"]
+#                 acc_upper = curve_results[version][model]["accuracy"]["se_upper"]
+
+#                 itr_lower = curve_results[version][model]["itr"]["se_lower"]
+#                 itr_upper = curve_results[version][model]["itr"]["se_upper"]
+#         elif version == "short":
+#             segments = curve_results["full"][model]["segments"][:42] if model == "rcca" else curve_results["full"][model]["segments"][:38]  # align segments across models
+#             acc_mean = curve_results["full"][model]["accuracy"]["mean"][:42] if model == "rcca" else curve_results["full"][model]["accuracy"]["mean"][:38]  # align segments across models
+
+#             itr_mean = curve_results["full"][model]["itr"]["mean"][:42] if model == "rcca" else curve_results["full"][model]["itr"]["mean"][:38]  # align segments across models
+
+#             if uncertainty == "std":
+#                 acc_lower = curve_results["full"][model]["accuracy"]["std_lower"][:42] if model == "rcca" else curve_results["full"][model]["accuracy"]["std_lower"][:38]  # align segments across models
+#                 acc_upper = curve_results["full"][model]["accuracy"]["std_upper"][:42] if model == "rcca" else curve_results["full"][model]["accuracy"]["std_upper"][:38]  # align segments across models
+
+#                 itr_lower = curve_results["full"][model]["itr"]["std_lower"][:42] if model == "rcca" else curve_results["full"][model]["itr"]["std_lower"][:38]  # align segments across models
+#                 itr_upper = curve_results["full"][model]["itr"]["std_upper"][:42] if model == "rcca" else curve_results["full"][model]["itr"]["std_upper"][:38]  # align segments across models
+#             elif uncertainty == "se":
+#                 acc_lower = curve_results["full"][model]["accuracy"]["se_lower"][:42] if model == "rcca" else curve_results["full"][model]["accuracy"]["se_lower"][:38]  # align segments across models
+#                 acc_upper = curve_results["full"][model]["accuracy"]["se_upper"][:42] if model == "rcca" else curve_results["full"][model]["accuracy"]["se_upper"][:38]  # align segments across models
+
+#                 itr_lower = curve_results["full"][model]["itr"]["se_lower"][:42] if model == "rcca" else curve_results["full"][model]["itr"]["se_lower"][:38]  # align segments across models
+#                 itr_upper = curve_results["full"][model]["itr"]["se_upper"][:42] if model == "rcca" else curve_results["full"][model]["itr"]["se_upper"][:38]  # align segments across models
+
+#         ax[0].plot(segments, acc_mean, linestyle="-", marker="o", label=model)
+#         ax[0].fill_between(
+#             segments,
+#             acc_mean - acc_lower,
+#             acc_mean + acc_upper,
+#             alpha=0.2,
+#             label="_" + model
+#         )
+
+#         ax[1].plot(segments, itr_mean, linestyle="-", marker="o", label=model)
+#         ax[1].fill_between(
+#             segments,
+#             itr_mean - itr_lower,
+#             itr_mean + itr_upper,
+#             alpha=0.2,
+#             label="_" + model
+#         )
+#     if version == "full":
+#         ax[0].axvspan(0, 4.2, color="grey", alpha=0.15, zorder=0)
+#         ax[1].axvspan(0, 4.2, color="grey", alpha=0.15, zorder=0)
+#     ax[0].axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
+#     ax[0].set_ylim(-0.02, 1.03)
+#     ax[1].set_ylim(-2, 103)
+#     ax[1].set_xlabel("decoding time [s]")
+#     ax[0].set_ylabel("accuracy")
+#     ax[1].set_ylabel("ITR [bits/min]")
+#     ax[0].legend()
+#     if version == "short":
+#         ax[0].set_title(f"Decoding curve across subjects (trial length = 4.2s)")
+#     else:
+#         ax[0].set_title(f"Decoding curve across subjects (trial length = 31.5s)")   
+
+#     fig.tight_layout()
+#     plt.show()
+
+def display_multi_subject_decoding_curve(curve_results, models, uncertainty="std"):
+    fig, ax = plt.subplots(2, 1, figsize=(15, 5), sharex=False)
 
     for model in models:
-        segments = curve_results[version][model]["segments"]
-
-        acc_mean = curve_results[version][model]["accuracy"]["mean"]
-
-        itr_mean = curve_results[version][model]["itr"]["mean"]
+        segments = curve_results["full"][model]["segments"]
+        acc_mean = curve_results["full"][model]["accuracy"]["mean"]
 
         if uncertainty == "std":
-            acc_lower = curve_results[version][model]["accuracy"]["std_lower"]
-            acc_upper = curve_results[version][model]["accuracy"]["std_upper"]
+            acc_lower = curve_results["full"][model]["accuracy"]["std_lower"]
+            acc_upper = curve_results["full"][model]["accuracy"]["std_upper"]
 
-            itr_lower = curve_results[version][model]["itr"]["std_lower"]
-            itr_upper = curve_results[version][model]["itr"]["std_upper"]
         elif uncertainty == "se":
-            acc_lower = curve_results[version][model]["accuracy"]["se_lower"]
-            acc_upper = curve_results[version][model]["accuracy"]["se_upper"]
+            acc_lower = curve_results["full"][model]["accuracy"]["se_lower"]
+            acc_upper = curve_results["full"][model]["accuracy"]["se_upper"]
 
-            itr_lower = curve_results[version][model]["itr"]["se_lower"]
-            itr_upper = curve_results[version][model]["itr"]["se_upper"]
+        if model == "rcca":
+            ax[0].plot(segments[:42], acc_mean[:42], linestyle="-", marker="o", label=model)
+            ax[0].fill_between(
+                segments[:42],
+                acc_mean[:42] - acc_lower[:42],
+                acc_mean[:42] + acc_upper[:42],
+                alpha=0.2,
+                label="_" + model
+            )
+        else:
+            ax[0].plot(segments[:38], acc_mean[:38], linestyle="-", marker="o", label=model)
+            ax[0].fill_between(
+                segments[:38],
+                acc_mean[:38] - acc_lower[:38],
+                acc_mean[:38] + acc_upper[:38],
+                alpha=0.2,
+                label="_" + model
+            )
 
-        ax[0].plot(segments, acc_mean, linestyle="-", marker="o", label=model)
-        ax[0].fill_between(
+        ax[1].plot(segments, acc_mean, linestyle="-", marker="o", label=model)
+        ax[1].fill_between(
             segments,
             acc_mean - acc_lower,
             acc_mean + acc_upper,
             alpha=0.2,
             label="_" + model
         )
+
+    ax[1].axvspan(0, 4.2, color="grey", alpha=0.15, zorder=0)
+    ax[0].axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
+    ax[0].set_ylim(-0.02, 1.03)
+    ax[1].axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
+    ax[1].set_ylim(-0.02, 1.03)
+    ax[1].set_xlabel("decoding time [s]")
+    ax[0].set_ylabel("accuracy")
+    ax[1].set_ylabel("accuracy")
+    #ax_dict['bottom'].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    ax[0].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0.)
+    ax[0].set_title(f"Decoding curve")
+    # ax[1].set_title(f"Decoding curve (trial length = 31.5s)")   
+
+    fig.tight_layout()
+    plt.show()
+
+
+def display_multi_subject_itr(curve_results, models, uncertainty="std"):
+    fig, ax = plt.subplots(2, 1, figsize=(15, 5), sharex=False)
+
+    for model in models:
+        segments = curve_results["full"][model]["segments"]
+
+        itr_mean = curve_results["full"][model]["itr"]["mean"]
+
+        if uncertainty == "std":
+            itr_lower = curve_results["full"][model]["itr"]["std_lower"]
+            itr_upper = curve_results["full"][model]["itr"]["std_upper"]
+        elif uncertainty == "se":
+            itr_lower = curve_results["full"][model]["itr"]["se_lower"]
+            itr_upper = curve_results["full"][model]["itr"]["se_upper"]
+        if model == "rcca":
+            ax[0].plot(segments[:42], itr_mean[:42], linestyle="-", marker="o", label=model)
+            ax[0].fill_between(
+                segments[:42],
+                itr_mean[:42] - itr_lower[:42],
+                itr_mean[:42] + itr_upper[:42],
+                alpha=0.2,
+                label="_" + model
+            )
+        else:
+            ax[0].plot(segments[:38], itr_mean[:38], linestyle="-", marker="o", label=model)
+            ax[0].fill_between(
+                segments[:38],
+                itr_mean[:38] - itr_lower[:38],
+                itr_mean[:38] + itr_upper[:38],
+                alpha=0.2,
+                label="_" + model
+            )
 
         ax[1].plot(segments, itr_mean, linestyle="-", marker="o", label=model)
         ax[1].fill_between(
@@ -374,20 +513,16 @@ def display_multi_subject_decoding_curve(curve_results, version, models, uncerta
             alpha=0.2,
             label="_" + model
         )
-    if version == "full":
-        ax[0].axvspan(0, 4.2, color="grey", alpha=0.15, zorder=0)
-        ax[1].axvspan(0, 4.2, color="grey", alpha=0.15, zorder=0)
-    ax[0].axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
-    ax[0].set_ylim(-0.02, 1.03)
+
+    ax[1].axvspan(0, 4.2, color="grey", alpha=0.15, zorder=0)
+    ax[0].set_ylim(-2, 103)
     ax[1].set_ylim(-2, 103)
+    ax[0].set_ylabel("ITR [bits/min]")
     ax[1].set_xlabel("decoding time [s]")
-    ax[0].set_ylabel("accuracy")
     ax[1].set_ylabel("ITR [bits/min]")
-    ax[0].legend()
-    if version == "short":
-        ax[0].set_title(f"Decoding curve across subjects (trial length = 4.2s)")
-    else:
-        ax[0].set_title(f"Decoding curve across subjects (trial length = 31.5s)")   
+    ax[0].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0.)
+    ax[0].set_title(f"ITR curve")
+    # ax[1].set_title(f"Decoding curve (trial length = 31.5s)")   
 
     fig.tight_layout()
     plt.show()
@@ -417,84 +552,68 @@ def display_multi_subject_learning_curve(curve_results, version, models, uncerta
             alpha=0.2,
             label="_" + model
         )
-    if version == "full":
-        upper_bound = 4.2 * train_trials
-        ax.axvspan(0, upper_bound[-1], color="grey", alpha=0.15, zorder=0)
+    # if version == "full":
+    #     upper_bound = 4.2 * train_trials
+    #     ax.axvspan(0, upper_bound[-1], color="grey", alpha=0.15, zorder=0)
     ax.axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
     ax.set_ylim(-0.02, 1.03)
     ax.set_xlabel("learning time [s]")
     ax.set_ylabel("accuracy")
-    ax.legend()
+    # ax.legend()
     if version == "short":
-        ax.set_title(f"Learning curve across subjects (trial length = 4.2s)")
+        ax.set_title(f"Learning curve (trial length = 4.2s)")
     else:
-        ax.set_title(f"Learning curve across subjects (trial length = 31.5s)")
-    ax.legend(title="Version", loc="lower right")
+        ax.set_title(f"Learning curve (trial length = 31.5s)")
+    ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0.)
 
     plt.tight_layout()
     plt.show()
 
 
-def display_accuracy(accuracy_epoch, accuracy_trial, n_folds=5):
-    # Plot epoch accuracy (over folds)
-    plt.figure(figsize=(15, 3))
-    plt.bar(np.arange(n_folds), accuracy_epoch)
-    plt.hlines(np.mean(accuracy_epoch), -.5, n_folds - 0.5, color="k")
-    # plt.hlines(1 / 2, -.5, n_folds - 0.5, color="k", linestyle='dashed')
-    plt.xlabel("(test) fold")
-    plt.ylabel("accuracy")
-    plt.title(f"EEGNet: accuracy (epoch): avg={np.mean(accuracy_epoch):.2f} std={np.std(accuracy_epoch):.2f}")
-
-    plt.show()
-
-    # Plot trial accuracy (over folds)
-    plt.figure(figsize=(15, 3))
-    plt.bar(np.arange(n_folds), accuracy_trial)
-    plt.hlines(np.mean(accuracy_trial), -.5, n_folds - 0.5, color="k")
-    # plt.hlines(1 / 20, -.5, n_folds - 0.5, color="k", linestyle='dashed')
-    plt.xlabel("(test) fold")
-    plt.ylabel("accuracy")
-    plt.title(f"EEGNet: accuracy (trial): avg={np.mean(accuracy_trial):.2f} std={np.std(accuracy_trial):.2f}") 
-
-    plt.show()
-
-
-def display_decoding_curve(data, segments, subject):
-    # Plot results
-    fig, ax = plt.subplots(2, 1, figsize=(15, 5), sharex=True)
+def calc_statistical_significance(curve_results, version, models, index):
     
-    for instance in data:
-        avg = instance[1].mean(axis=0)
-        std = instance[1].std(axis=0)
-        ax[0].plot(segments, avg, linestyle='-', marker='o', label=instance[2])
-        ax[0].fill_between(segments, avg + std, avg - std, alpha=0.2, label="_" + instance[2])
-        avg = instance[0].mean(axis=0)
-        std = instance[0].std(axis=0)
-        ax[1].plot(segments, avg, linestyle='-', marker='o', label=instance[2])
-        ax[1].fill_between(segments, avg + std, avg - std, alpha=0.2, label="_" + instance[2])
+    # indices = [0, 14, 26]
+    # set1 = curve_results[version][models[0]]["accuracy"]["values"][:, index]
 
-    ax[0].axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
-    ax[1].set_xlabel("decoding time [s]")
-    ax[0].set_ylabel("accuracy")
-    ax[1].set_ylabel("ITR [bits/min]")
-    ax[0].legend()
-    ax[0].set_title(f"Decoding curve - {subject}")
-    fig.tight_layout()
-    plt.show()
+    if "itr" in curve_results[version][models[0]]:
+        if "rcca" in models:
+            set1 = curve_results[version][models[0]]["accuracy"]["values"][:, index - 4]
+            set2 = curve_results[version][models[1]]["accuracy"]["values"][:, index]
+        else:
+            set1 = curve_results[version][models[0]]["accuracy"]["values"][:, index - 4]
+            set2 = curve_results[version][models[1]]["accuracy"]["values"][:, index - 4]
+    else:
+        set1 = curve_results[version][models[0]]["accuracy"]["values"][:, index]
+        set2 = curve_results[version][models[1]]["accuracy"]["values"][:, index]
 
+    print(set1)
+    print(set2)
 
-def display_learning_curve(data, train_trials, trialtime=4.2):
-    # Plot results
-    plt.figure(figsize=(15, 3))
-    for instance in data:
-        avg = instance[0].mean(axis=0)
-        std = instance[0].std(axis=0)
-        plt.plot(train_trials * trialtime, avg, linestyle='-', marker='o', label=instance[1])
-        plt.fill_between(train_trials * trialtime, avg + std, avg - std, alpha=0.2, label="_" + instance[1])
-    plt.axhline(1 / 20, color="k", linestyle="--", alpha=0.5, label="chance")
-    plt.xlabel("learning time [s]")
-    plt.ylabel("accuracy")
-    plt.legend()
-    plt.title("Learning curve")
-    plt.tight_layout()
-    plt.show()
+    # mean paired difference
+    mean_diff = np.mean(set1 - set2)
+
+    # standard deviation of paired differences
+    std_diff = np.std(set1 - set2)
+    
+    # Perform Wilcoxon signed-rank test
+    _, p_value = wilcoxon(set1, set2)
+
+    # Hedges' g
+    n1 = len(set1)
+    n2 = len(set2)
+    s1 = np.std(set1)
+    s2 = np.std(set2)
+
+    pooled_sd = np.sqrt(
+    ((n1 - 1) * s1**2 + (n2 - 1) * s2**2)
+    / (n1 + n2 - 2)
+    )
+
+    d = (np.mean(set1) - np.mean(set2)) / pooled_sd
+
+    df = n1 + n2 - 2
+    J = 1 - (3 / (4 * df - 1))
+
+    hedges_g = d * J
+
+    return p_value, mean_diff, std_diff, hedges_g

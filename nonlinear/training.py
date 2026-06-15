@@ -16,12 +16,12 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
-fs = 120
+fs = 240
 fr = 60
 n_trials = 100 
 n_channels = 8
 epochtime = 0.5
-trialtime = 4.2 # limit trials to a certain duration in seconds
+trialtime = 31.5 # limit trials to a certain duration in seconds
 
 # n_samples = int(31.5 * fs) # IS this stuill right if I run for 4.2 s only
 
@@ -36,7 +36,7 @@ folds = np.repeat(np.arange(n_folds), n_trials / n_folds)
 
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "preprocess", "offline", "eegnet", "noartifacts", "120_500", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "eegnet", "noartifacts", "240_500", subject, f"{subject}_gdf.npz")
 
     tmp = np.load(fn)
     X = tmp["X"]
@@ -79,7 +79,7 @@ for subject in subjects:
                                 n_times=encoding_length,
                                 X_valid=X_val.reshape((-1, n_channels, encoding_length)), 
                                 y_valid=y_val.flatten(),
-                                F1=8,
+                                F1=4,
                                 device=device
                             )
 
