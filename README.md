@@ -15,7 +15,7 @@ Dataset:
 }
 ```
 
-Replicated code:
+Replicated code + PyntBCI:
 ```bibtex
 @article{thielen2021full,
   title={From full calibration to zero training for a code-modulated visual evoked potentials for brain--computer interface},
