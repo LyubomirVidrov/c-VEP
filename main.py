@@ -1,20 +1,22 @@
 import os
-import numpy as np
 import utils
 
 home = os.path.expanduser("~")  # the path to the home folder
 path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
+# List of subjects to analyze
 subjects = [f"sub-{1+i:02d}" for i in range(10)] 
 
 # Parameters search 
 results = utils.collect_multi_subject_data(path, subjects)
 
+# Display results 
 utils.plot_grouped_accuracy(results, is_full=False, uncertainty="se")
 
-# Decoding curve
+# Get decoding curve data
 curve_results = utils.collect_multi_subject_decoding_curves(path, subjects)
 
+# Display decoding curve 
 utils.display_multi_subject_decoding_curve(
     curve_results,
     # version="full",
@@ -22,6 +24,7 @@ utils.display_multi_subject_decoding_curve(
     uncertainty="se"
 )
 
+# Display ITR curve
 utils.display_multi_subject_itr(
     curve_results,
     # version="full",
@@ -29,9 +32,10 @@ utils.display_multi_subject_itr(
     uncertainty="se"
 )
 
-# Learning curve
+# Get learning curve data 
 learning_curve_results = utils.collect_multi_subject_learning_curves(path, subjects)
 
+# Display learning curve
 utils.display_multi_subject_learning_curve(
     learning_curve_results,
     version="short",

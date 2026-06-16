@@ -5,7 +5,7 @@ import torch
 
 from pipeline import EEGNet_pipeline
 
-# Set up GPU if it is there
+# Set up GPU if available
 mps = torch.backends.mps.is_available()
 device = "mps" if mps else "cpu"
 print("GPU is", "AVAILABLE" if mps else "NOT AVAILABLE")
@@ -15,6 +15,7 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
+# Set parameters
 fs = 240
 fr = 60
 n_trials = 100 
@@ -27,30 +28,31 @@ intertrialtime = 1.0  # ITI in seconds for computing ITR
 encoding_length = int(epochtime * fs)
 encoding_stride = int(1 / fr * fs)
 
+# Set number of epochs
 n_epochs = int(round((fs*trialtime - encoding_length)/2 + 1))
 
-# Setup cross-validation
+# Chronological cross-validation
 n_folds = 5
 folds = np.repeat(np.arange(n_folds), n_trials / n_folds)
 
 segmenttime = 0.7  # step size of the decoding curve in seconds
 segments = np.concatenate([np.arange(0.1, 4.2, 0.1), np.arange(4.2, trialtime, segmenttime)])
-index = np.where(np.isclose(segments, encoding_length/fs))[0][0] # time constraint 
+
+# Account for the time constraint of 500 ms (0.5 s) for the decoding curve
+index = np.where(np.isclose(segments, encoding_length/fs))[0][0]
 segments = segments[index:]
-# segments = segments[segments > 36/fs]
 n_segments = segments.size
 
+# Loop subjects
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "preprocess", "offline", "eegnet", "noartifacts", "240_500", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "eegnet", "240_500", subject, f"{subject}_gdf.npz")
 
     tmp = np.load(fn)
     X = tmp["X"]
     y = tmp["y"]
     V = tmp["V"]
     y_trial = tmp["y_trial"]
-
-    # pipe = EEGNet_pipeline(X)
 
     # Reshape data to trial level
     X_ = X.reshape((n_trials, -1, X.shape[1], X.shape[2]))
@@ -63,7 +65,6 @@ for subject in subjects:
 
     # Loop folds
     accuracy_trial = np.zeros((n_folds, n_segments))
-
     for i_fold in range(n_folds):
         # Split data to train and valid set
         X_trn = X_[folds != i_fold, :n_epochs, :, :]
@@ -73,11 +74,9 @@ for subject in subjects:
         y_trn_trial = y_trial[folds != i_fold]
         y_tst_trial = y_trial[folds == i_fold]
 
-        # # Initialize pipeline
-        # pipe = EEGNet_pipeline(X=X)
-
         valid_size = 20  # one full block = 20 trials
 
+        # Separate validation trails from the training set
         X_val = X_trn[-valid_size:]
         y_val = y_trn[-valid_size:]
 
@@ -104,6 +103,7 @@ for subject in subjects:
             # Apply pipeline (on trial level)
             ph_tst = pipe.predict_proba(X_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1)), :, :].reshape((-1, n_channels, encoding_length)))[:, 1].reshape(y_tst[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1))].shape)
             
+            # Compute accuracy
             rho = pyntbci.utilities.correlation(ph_tst, _V[:, : int(round((fs*segments[i_segment] - encoding_length)/2 + 1))])
             yh_tst = np.argmax(rho, axis=1)
             accuracy_trial[i_fold, i_segment] = np.mean(yh_tst == y_tst_trial)
@@ -113,11 +113,8 @@ for subject in subjects:
     itr = pyntbci.utilities.itr(V.shape[0], accuracy_trial, time + intertrialtime) 
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "eegnet_full_4_2", subject)):
-        os.makedirs(os.path.join(path, "decoding_curve", "offline", "eegnet_full_4_2", subject))
+    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "full", "eegnet-4-2", subject)): # change according to # of temporal filters
+        os.makedirs(os.path.join(path, "decoding_curve", "offline", "full", "eegnet-4-2", subject))
         
     # Save data
-    np.savez(os.path.join(path, "decoding_curve", "offline", "eegnet_full_4_2", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy_trial, segments=segments)
-
-    print("EEGNet:")
-    print(subject, ': Decoding curve finished')
+    np.savez(os.path.join(path, "decoding_curve", "offline", "full", "eegnet-4-2", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy_trial, segments=segments)

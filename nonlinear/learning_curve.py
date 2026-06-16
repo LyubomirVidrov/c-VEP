@@ -5,7 +5,7 @@ import torch
 
 from pipeline import EEGNet_pipeline
 
-# Set up GPU if it is there
+# Set up GPU if available
 mps = torch.backends.mps.is_available()
 device = "mps" if mps else "cpu"
 print("GPU is", "AVAILABLE" if mps else "NOT AVAILABLE")
@@ -15,6 +15,7 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
+# Set parameters
 fs = 240
 fr = 60
 n_trials = 100 
@@ -26,13 +27,14 @@ trialtime = 31.5  # limit trials to a certain duration in seconds
 encoding_length = int(epochtime * fs)
 encoding_stride = int(1 / fr * fs)
 
+# Set number of epochs
 n_epochs = int(round((fs*trialtime - encoding_length)/2 + 1))
 
-# Setup cross-validation
+# Chronological cross-validation
 n_folds = 5
 folds = np.repeat(np.arange(n_folds), n_trials / n_folds)
 
-# train_trials = np.arange(1, 1 + np.sum(folds != 0))
+# Set learning curve axis
 train_trials = np.concatenate([
     np.arange(1, 11, 1), 
     np.arange(12, 20, 2),
@@ -40,17 +42,16 @@ train_trials = np.concatenate([
 ])
 n_train_trials = train_trials.size
 
+# Loop subjects
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "preprocess", "offline", "eegnet", "noartifacts", "240_500", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "eegnet", "240_500", subject, f"{subject}_gdf.npz")
 
     tmp = np.load(fn)
     X = tmp["X"]
     y = tmp["y"]
     V = tmp["V"]
     y_trial = tmp["y_trial"]
-
-    # pipe = EEGNet_pipeline(X)
 
     # Reshape data to trial level
     X_ = X.reshape((n_trials, -1, X.shape[1], X.shape[2]))
@@ -63,7 +64,6 @@ for subject in subjects:
 
     # Loop folds
     accuracy_trial = np.zeros((n_folds, n_train_trials))
-
     for i_fold in range(n_folds):
         # Split data to train and valid set
         X_trn = X_[folds != i_fold, :n_epochs, :, :]
@@ -74,7 +74,8 @@ for subject in subjects:
         y_tst_trial = y_trial[folds == i_fold]
 
         valid_size = 20  # one full block = 20 trials
-
+        
+        # Separate validation trails from the training set
         X_val = X_trn[-valid_size:]
         y_val = y_trn[-valid_size:]
 
@@ -105,11 +106,9 @@ for subject in subjects:
             yh_tst = np.argmax(rho, axis=1)
             accuracy_trial[i_fold, i_trial] = np.mean(yh_tst == y_tst_trial)
 
-        print(f"Now running: Fold {i_fold}...")
-
-        # Create output folder
-    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full1", "eegnet_4_2", subject)):
-        os.makedirs(os.path.join(path, "learning_curve", "offline", "full1", "eegnet_4_2", subject))
+    # Create output folder
+    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full", "eegnet-4-2", subject)): # change according to trialtime and # of temporal filters
+        os.makedirs(os.path.join(path, "learning_curve", "offline", "full", "eegnet-4-2", subject))
         
     # Save data
-    np.savez(os.path.join(path, "learning_curve", "offline", "full1", "eegnet_4_2", subject, f"{subject}_gdf.npz"), accuracy=accuracy_trial, train_trials=train_trials)
+    np.savez(os.path.join(path, "learning_curve", "offline", "full", "eegnet-4-2", subject, f"{subject}_gdf.npz"), accuracy=accuracy_trial, train_trials=train_trials)

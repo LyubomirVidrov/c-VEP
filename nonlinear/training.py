@@ -6,7 +6,7 @@ import torch
 from pipeline import EEGNet_pipeline
 
 
-# Set up GPU if it is there
+# Set up GPU if available
 mps = torch.backends.mps.is_available()
 device = "mps" if mps else "cpu"
 print("GPU is", "AVAILABLE" if mps else "NOT AVAILABLE")
@@ -16,6 +16,7 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
+# Set parameters
 fs = 240
 fr = 60
 n_trials = 100 
@@ -23,20 +24,19 @@ n_channels = 8
 epochtime = 0.5
 trialtime = 31.5 # limit trials to a certain duration in seconds
 
-# n_samples = int(31.5 * fs) # IS this stuill right if I run for 4.2 s only
-
 # Set epoch size
 encoding_length = int(epochtime * fs)
 encoding_stride = int(1 / fr * fs)
 n_epochs = int(round((fs*trialtime - encoding_length)/2))
 
-# Setup cross-validation
+# Chronological cross-validation
 n_folds = 5
 folds = np.repeat(np.arange(n_folds), n_trials / n_folds)
 
+# Loop subjects
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "preprocess", "offline", "eegnet", "noartifacts", "240_500", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "eegnet", "240_500", subject, f"{subject}_gdf.npz")
 
     tmp = np.load(fn)
     X = tmp["X"]
@@ -68,6 +68,7 @@ for subject in subjects:
 
         valid_size = 20  # one full block = 20 trials
 
+        # Separate validation trails from the training set
         X_val = X_trn[-valid_size:]
         y_val = y_trn[-valid_size:]
 
@@ -99,11 +100,11 @@ for subject in subjects:
         accuracy_trial[i_fold] = np.mean(yh_tst == y_tst_trial)
 
     #Create output folder
-    if not os.path.exists(os.path.join(path, "train", "offline", "noartifacts", "120_500", "eegnet_short_8_2", subject)):
-        os.makedirs(os.path.join(path, "train", "offline", "noartifacts", "120_500", "eegnet_short_8_2", subject))
+    if not os.path.exists(os.path.join(path, "train", "offline", "240_500", "full", "eegnet-4-2", subject)): # change according to fs, epochtime, trialtime and # of temporal filters
+        os.makedirs(os.path.join(path, "train", "offline", "240_500", "full", "eegnet-4-2", subject))
 
     # Save data
-    np.savez(os.path.join(path, "train", "offline", "noartifacts", "120_500", "eegnet_short_8_2", subject, f"{subject}_gdf.npz"), acc_epoch=accuracy_epoch, acc_trial=accuracy_trial)
+    np.savez(os.path.join(path, "train", "offline", "240_500", "full", "eegnet-4-2", subject, f"{subject}_gdf.npz"), acc_epoch=accuracy_epoch, acc_trial=accuracy_trial)
 
     # Print accuracy (average and standard deviation over folds)
     print("EEGNet:")

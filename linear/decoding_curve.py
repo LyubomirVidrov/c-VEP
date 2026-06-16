@@ -7,6 +7,7 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
+# Loop subjects
 for subject in subjects:
     # Load data
     fn = os.path.join(path, "preprocess", "offline", "rcca", "240", subject, f"{subject}_gdf.npz")
@@ -37,50 +38,45 @@ for subject in subjects:
     n_folds = 5
     folds = np.repeat(np.arange(n_folds), int(n_trials / n_folds))
 
-    # Set decoding curve axis
-    # segmenttime = 0.1  # step size of the decoding curve in seconds
-    # segments = np.arange(segmenttime, trialtime, segmenttime)
     segmenttime = 0.7  # step size of the decoding curve in seconds
     segments = np.concatenate([np.arange(0.1, 4.2, 0.1), np.arange(4.2, trialtime, segmenttime)])
     n_segments = segments.size
 
-    print(segments)
-    print(n_segments)
-
     # Loop folds
-    # accuracy = np.zeros((n_folds, n_segments))
-    # for i_fold in range(n_folds):
+    accuracy = np.zeros((n_folds, n_segments))
+    for i_fold in range(n_folds):
 
-    #     # Split data to train and test set
-    #     X_trn, y_trn = X[folds != i_fold, :, :n_samples], y[folds != i_fold]
-    #     X_tst, y_tst = X[folds == i_fold, :, :n_samples], y[folds == i_fold]
+        # Split data to train and test set
+        X_trn, y_trn = X[folds != i_fold, :, :n_samples], y[folds != i_fold]
+        X_tst, y_tst = X[folds == i_fold, :, :n_samples], y[folds == i_fold]
 
-    #     excess = 20  # one full block = 20 trials (serve the purpose of validation)
+        excess = 20  # one full block = 20 trials (used for validation)
 
-    #     X_trn = X_trn[:-excess]
-    #     y_trn = y_trn[:-excess]
+        # Remove validation trails from the training set 
+        X_trn = X_trn[:-excess]
+        y_trn = y_trn[:-excess]
 
-    #     # Setup classifier
-    #     rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.5, onset_event=True)
+        # Setup classifier
+        rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.5, onset_event=True)
 
-    #     # Train classifier
-    #     rcca.fit(X_trn, y_trn)
+        # Train classifier
+        rcca.fit(X_trn, y_trn)
 
-    #     # Loop segments
-    #     for i_segment in range(n_segments):
-    #         # Apply classifier
-    #         yh_tst = rcca.predict(X_tst[:, :, :int(fs * segments[i_segment])])
+        # Loop segments
+        for i_segment in range(n_segments):
+            # Apply classifier
+            yh_tst = rcca.predict(X_tst[:, :, :int(fs * segments[i_segment])])
 
-    #         # Compute accuracy
-    #         accuracy[i_fold, i_segment] = np.mean(yh_tst == y_tst)
+            # Compute accuracy
+            accuracy[i_fold, i_segment] = np.mean(yh_tst == y_tst)
 
-    # # Compute ITR
-    # time = np.tile(segments[np.newaxis, :], (n_folds, 1))
-    # itr = pyntbci.utilities.itr(n_classes, accuracy, time + intertrialtime)
+    # Compute ITR
+    time = np.tile(segments[np.newaxis, :], (n_folds, 1))
+    itr = pyntbci.utilities.itr(n_classes, accuracy, time + intertrialtime)
 
-    # # Create output folder
-    # if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "rcca_full", subject)):
-    #     os.makedirs(os.path.join(path, "decoding_curve", "offline", "rcca_full", subject))
+    # Create output folder
+    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "full", "rcca", subject)):
+        os.makedirs(os.path.join(path, "decoding_curve", "offline", "full", "rcca", subject))
         
-    # # Save data
-    # np.savez(os.path.join(path, "decoding_curve", "offline", "rcca_full", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy, segments=segments)
+    # Save data
+    np.savez(os.path.join(path, "decoding_curve", "offline", "full", "rcca", subject, f"{subject}_gdf.npz"), itr=itr, acc_trial=accuracy, segments=segments)

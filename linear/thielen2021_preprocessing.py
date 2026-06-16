@@ -153,11 +153,11 @@ for subject in subjects:
     y = np.array(labels).flatten().astype("uint8")
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "preprocess", "offline", "rcca", subject)):
-        os.makedirs(os.path.join(path, "preprocess", "offline", "rcca", subject))
+    if not os.path.exists(os.path.join(path, "preprocess", "offline", "rcca", "240", subject)): # change according to fs 
+        os.makedirs(os.path.join(path, "preprocess", "offline", "rcca", "240", subject))
 
     # Save data
-    np.savez(os.path.join(path, "preprocess", "offline", "rcca", subject, f"{subject}_gdf.npz"), X=X, y=y, V=V, fs=fs)
+    np.savez(os.path.join(path, "preprocess", "offline", "rcca", "240", subject, f"{subject}_gdf.npz"), X=X, y=y, V=V, fs=fs)
 
     # Print summary
     print("Subject: ", subject)

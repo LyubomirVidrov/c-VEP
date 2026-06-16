@@ -7,6 +7,7 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
+# Loop subjects
 for subject in subjects:
     # Load data
     fn = os.path.join(path, "preprocess", "offline", "rcca", "240", subject, f"{subject}_gdf.npz")
@@ -37,7 +38,6 @@ for subject in subjects:
     folds = np.repeat(np.arange(n_folds), int(n_trials / n_folds))
 
     # Set learning curve axis
-    # train_trials = np.arange(1, 1 + np.sum(folds != 0))
     train_trials = np.concatenate([
         np.arange(1, 11, 1),
         np.arange(12, 20, 2),
@@ -55,6 +55,7 @@ for subject in subjects:
 
         excess = 20  # one full block = 20 trials (serve the purpose of validation)
 
+        # Remove validation trails from the training set
         X_trn = X_trn[:-excess]
         y_trn = y_trn[:-excess]
 
@@ -70,8 +71,8 @@ for subject in subjects:
             # Compute accuracy
             accuracy[i_fold, i_trial] = np.mean(yh_tst == y_tst)
     
-        # Create output folder
-    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full", "rcca", subject)):
+    # Create output folder
+    if not os.path.exists(os.path.join(path, "learning_curve", "offline", "full", "rcca", subject)): # change to 'short' when trialtime = 4.2
         os.makedirs(os.path.join(path, "learning_curve", "offline", "full", "rcca", subject))
         
     # Save data

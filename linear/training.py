@@ -7,9 +7,10 @@ path = os.path.join(home, "data", "thielen2021")  # the path to the dataset
 
 subjects = [f"sub-{1+i:02d}" for i in range(10)]  # all participants
 
+# Loop subjects
 for subject in subjects:
     # Load data
-    fn = os.path.join(path, "preprocess", "offline", "rcca", "120", subject, f"{subject}_gdf.npz")
+    fn = os.path.join(path, "preprocess", "offline", "rcca", "240", subject, f"{subject}_gdf.npz")
     tmp = np.load(fn)
 
     X = tmp["X"]
@@ -26,7 +27,7 @@ for subject in subjects:
     E, events = pyntbci.utilities.event_matrix(V, event="duration", onset_event=True)
 
     # Create structure matrix
-    encoding_length = int(0.3 * fs)  # 300 ms responses
+    encoding_length = int(0.5 * fs)  # 500 ms responses
     M = pyntbci.utilities.encoding_matrix(E, encoding_length)   
 
     trialtime = 4.2  # limit trials to a certain duration in seconds
@@ -46,11 +47,12 @@ for subject in subjects:
 
         excess = 20  # one full block = 20 trials (serve the purpose of validation)
 
+        # Remove validation trails from the training set 
         X_trn = X_trn[:-excess]
         y_trn = y_trn[:-excess]
 
         # Train template-matching classifier
-        rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.3, onset_event=True)
+        rcca = pyntbci.classifiers.rCCA(stimulus=V, fs=fs, event="duration", encoding_length=0.5, onset_event=True)
         rcca.fit(X_trn, y_trn)
 
         # Apply template-matching classifier
@@ -63,13 +65,12 @@ for subject in subjects:
     itr = pyntbci.utilities.itr(n_classes, accuracy, trialtime + intertrialtime)
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "train", "offline", "noartifacts", "120_300", subject)):
-        os.makedirs(os.path.join(path, "train", "offline", "noartifacts", "120_300", subject))
+    if not os.path.exists(os.path.join(path, "train", "offline", "240_500", "short", "rcca", subject)): # change according to fs, encoding length, and trialtime
+        os.makedirs(os.path.join(path, "train", "offline", "240_500", "short", "rcca", subject))
 
     # Save data
-    np.savez(os.path.join(path, "train", "offline", "noartifacts", "120_300", subject, f"{subject}_gdf.npz"), accuracy=accuracy)
+    np.savez(os.path.join(path, "train", "offline", "240_500", "short", "rcca", subject, f"{subject}_gdf.npz"), accuracy=accuracy)
 
     # Print accuracy (average and standard deviation over folds)
     print(f"Accuracy: avg={accuracy.mean():.2f} with std={accuracy.std():.2f}")
     print(f"ITR: avg={itr.mean():.1f} with std={itr.std():.2f}")
-
