@@ -40,3 +40,32 @@ version = {1.0.0},
 year = {2023}
 }
 ```
+
+Braindecode:
+```bibtex
+@misc{braindecode,
+  author = {Aristimunha, Bruno and
+            Guetschel, Pierre and
+            Wimpff, Martin and
+            Gemein, Lukas and
+            Rommel, Cedric and
+            Banville, Hubert and
+            Sliwowski, Maciej and
+            Wilson, Daniel and
+            Brandt, Simon and
+            Gnassounou, Théo and
+            Paillard, Joseph and
+            {Junqueira Lopes}, Bruna and
+            Sedlar, Sara and
+            Moreau, Thomas and
+            Chevallier, Sylvain and
+            Gramfort, Alexandre and
+            Schirrmeister, Robin Tibor},
+  title = {Braindecode: toolbox for decoding raw electrophysiological brain data
+           with deep learning models},
+  howpublished = {Zenodo},
+  url = {https://github.com/braindecode/braindecode},
+  doi = {10.5281/zenodo.17699192},
+  license = {BSD-3-Clause},
+}
+```
