@@ -28,7 +28,15 @@
    if bmin  - 0.5 < tmin or bmax > tmax:
      steps.append(("crop", get_crop_pipeline(tmin=tmin, tmax=tmax)))
    ```
+### Run
 
+The following steps should be performed for both the linear and nonlinear approaches:
+
+1. Run the preprocessing scripts.
+2. Run `training.py` to determine the optimal parameter combination. Use these parameters in the subsequent steps.
+3. Run `learning_curve.py`.
+4. Run `decoding_curve.py`.
+5. Run `main.py` to generate and display the figures.
 
 ### References
 Dataset: 
