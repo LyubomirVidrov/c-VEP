@@ -1,13 +1,34 @@
 # c-VEP
 
 ### Setup 
-1. Download the following libraries:
-`pip install braindecode==1.5.0,
-pip install moabb==1.4.3,
-pip install pyntbci==1.8.3,
-pip install torch==2.12.0,
-pip install python==3.11.15
-`
+1. Use Python 3.11.15.
+1. Install all the requirements as follows:
+```bash
+   pip install braindecode==1.5.0 moabb==1.4.3 pyntbci==1.8.3
+```
+3. Clone MOABB locally because we need to modify the preprocessing step to match rCCA. 
+4. Open:
+`moabb/paradigms/base.py`
+5. Inside the `BaseProcessing` class. Ensure you have the following:
+   ```python
+    RawToEpochs(
+     event_id=self.used_events(dataset),
+     tmin=bmin - 0.5,
+     tmax=bmax,
+     baseline=baseline,
+     channels=self.channels,
+     interpolate_missing_channels=self.interpolate_missing_channels,
+     return_all_modalities=dataset.return_all_modalities,
+   )
+
+   if self.resample is not None:
+     steps.append(("resample", get_resample_pipeline(self.resample)))
+   
+   # crop after the resampling to account for the artifacts introduced by resampling 
+   if bmin  - 0.5 < tmin or bmax > tmax:
+     steps.append(("crop", get_crop_pipeline(tmin=tmin, tmax=tmax)))
+   ```
+
 
 ### References
 Dataset: 
