@@ -1,5 +1,13 @@
 # c-VEP
 
+### Setup 
+1. Download the following libraries:
+`pip install braindecode==1.5.0,
+pip install moabb==1.4.3,
+pip install pyntbci==1.8.3,
+pip install torch==2.12.0,
+pip install python==3.11.15
+`
 
 ### References
 Dataset: 
