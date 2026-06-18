@@ -30,7 +30,7 @@
    ```
 ### Run
 
-The following steps should be performed for both the linear and nonlinear approaches:
+The following steps should be performed in order for both the linear and nonlinear approaches:
 
 1. Run the preprocessing scripts.
 2. Run `training.py` to determine the optimal parameter combination. Use these parameters in the subsequent steps.
