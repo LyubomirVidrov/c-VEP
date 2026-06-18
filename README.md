@@ -1,7 +1,7 @@
 # c-VEP
 
 ### Setup 
-1. Use Python 3.11.15.
+1. Use Python `3.11.15`.
 1. Install all the requirements as follows:
 ```bash
    pip install braindecode==1.5.0 moabb==1.4.3 pyntbci==1.8.3
