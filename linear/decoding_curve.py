@@ -75,7 +75,7 @@ for subject in subjects:
     itr = pyntbci.utilities.itr(n_classes, accuracy, time + intertrialtime)
 
     # Create output folder
-    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "full", "rcca", subject)):
+    if not os.path.exists(os.path.join(path, "decoding_curve", "offline", "full", "rcca", subject)): # change to 'short' when trialtime = 4.2
         os.makedirs(os.path.join(path, "decoding_curve", "offline", "full", "rcca", subject))
         
     # Save data
