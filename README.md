@@ -36,7 +36,7 @@ The following steps should be performed in order for both the linear and nonline
 2. Run `training.py` to determine the optimal parameter combination. Use these parameters in the subsequent steps.
 3. Run `learning_curve.py`.
 4. Run `decoding_curve.py`.
-5. Run `main.py` to generate and display the figures.
+5. Run `main.py` to display results.
 
 ### References
 Dataset: 
